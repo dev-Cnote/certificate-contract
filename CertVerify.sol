@@ -12,6 +12,7 @@ contract CertVerify is Ownable {
     uint public maxAdmins;
     uint public adminIndex = 0;
     uint public studentIndex = 0;
+    uint public totalWeiDonations = 0;
     
     enum assignmentStatus { 
         Inactive,
@@ -52,7 +53,7 @@ contract CertVerify is Ownable {
     // Mapping
     mapping(address => Admin) public admins;
     mapping(uint => address) public adminsReverseMapping;
-    mapping(uint => Student) public students;
+    mapping(uint => Student) private students;
     mapping(string => uint) public studentsReverseMapping;
     
     // Events
@@ -154,7 +155,6 @@ contract CertVerify is Ownable {
         address _admin
         ) external onlyOwner 
     {
-        // onlyNonOwnerAdmins with onlyOwner can acheive the same functionality
         require(_admin != owner(), "Cannot remove owner");
         _removeAdmin(_admin);
     }
@@ -262,6 +262,44 @@ contract CertVerify is Ownable {
         emit StudentEmailUpdated(_email, _newEmail);
     }
     
+    function _bytes32ToString(
+       bytes32 _x
+       ) internal pure returns(string memory) 
+    {
+        bytes memory bytesString = new bytes(32);
+        uint charCount = 0;
+        for (uint j = 0; j < 32; j++) {
+            byte char = byte(bytes32(uint(_x) * 2 ** (8 * j)));
+            if (char != 0) {
+                bytesString[charCount] = char;
+                charCount++;
+            }
+        }
+        bytes memory bytesStringTrimmed = new bytes(charCount);
+        for (uint j = 0; j < charCount; j++) {
+            bytesStringTrimmed[j] = bytesString[j];
+        } 
+    }
+    
+    function fetchStudent(
+        string memory _email
+        ) public view onlyValidStudents(_email) returns(
+            string memory firstName,
+            string memory lastName, 
+            string memory commendation, 
+            grades grade, 
+            uint16 assignmentIndex, 
+            bool active)
+    {
+        firstName = _bytes32ToString(students[studentsReverseMapping[_email]].firstName);
+        lastName = _bytes32ToString(students[studentsReverseMapping[_email]].lastName);
+        commendation = _bytes32ToString(students[studentsReverseMapping[_email]].commendation); 
+        grade = students[studentsReverseMapping[_email]].grade;
+        assignmentIndex = students[studentsReverseMapping[_email]].assignmentIndex;
+        active = students[studentsReverseMapping[_email]].active;
+        return(firstName, lastName, commendation, grade, assignmentIndex, active);
+    }
+    
     function transferOwnership(
         address _newOwner
         ) public onlyOwner 
@@ -339,9 +377,10 @@ contract CertVerify is Ownable {
     function donateEth(
         ) external payable 
     {
-        if(msg.value < 0.005 ether) {
+        if(msg.value < 5000000000000000 wei) {
             revert('Cannot donate less than 0.005 ether');
         }
+        totalWeiDonations = totalWeiDonations.add(msg.value);
         // Trigger EtherDonated
         emit EtherDonated(address(this), msg.value);
     }
