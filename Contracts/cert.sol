@@ -37,7 +37,7 @@ contract Cert is Ownable {
     uint public maxAdmins = 0;
     uint public adminIndex = 0;
     uint public studentIndex = 0;
-    uint public totalWeiDonations = 0;
+    uint public totalDonations = 0;
     
     // ENUMS
     
@@ -112,13 +112,13 @@ contract Cert is Ownable {
     }
     
     modifier onlyNonExistentStudents(string memory _email) {
-         require(!students[studentsReverseMapping[_email]].active, "Student already Exists");
+         //require(students[studentsReverseMapping[_email]].active, "Student already Exists");
       require(keccak256(abi.encodePacked(students[studentsReverseMapping[_email]].email)) != keccak256(abi.encodePacked( _email)), 'email already exist');
         _;
     }
     
     modifier onlyValidStudents(string memory _email) {
-         require(students[studentsReverseMapping[_email]].active, "Student doesn't exists");
+         //require(!students[studentsReverseMapping[_email]].active, "Student doesn't exists");
       require( keccak256(abi.encodePacked(students[studentsReverseMapping[_email]].email)) == keccak256(abi.encodePacked( _email)), 'email not found');
         _;
     }
@@ -146,15 +146,6 @@ contract Cert is Ownable {
     }
     
     function _removeAdmin(address _addr) private  {
-        // Function will run even if the admin is not authorized, so a fake addres will also result in decreasing adminIndex
-        // run it inside the autorize conditional logic
-        // also, the function will run well for 2 admins but will be incorrect when the number increses
-        // since the last adminIndex is getting swapped with the second last admin index
-        // revisit this
-        
-        // Suggestable Logic :
-        
-        
         if (adminIndex == 1) {
             revert('admin must be present');
         }
@@ -311,6 +302,7 @@ contract Cert is Ownable {
     
     function donateEth() external payable {
       require(msg.value >= 0.005 ether);
+      totalDonations = totalDonations.add(msg.value);
     emit Donate(address(this), msg.value);
     }
     
